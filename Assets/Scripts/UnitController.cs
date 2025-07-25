@@ -1,27 +1,28 @@
 using Unity.Netcode;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class UnitController : NetworkBehaviour
 {
-    [SerializeField] private float speed = 3f;
+    private NavMeshAgent agent;
 
-    private void Update()
+    [SerializeField] private GameObject selectionCircle;
+
+    private void Awake()
     {
-        if (!IsOwner) return;
-
-        float horizontal = Input.GetAxis("Horizontal");
-        float vertical = Input.GetAxis("Vertical");
-
-        Vector3 direction = new Vector3(horizontal, 0, vertical);
-        if (direction != Vector3.zero)
-        {
-            RequestMoveServerRpc(direction.normalized, speed * Time.deltaTime);
-        }
+        agent = GetComponent<NavMeshAgent>();
+        SetSelected(false); // —брос на старте
     }
 
     [ServerRpc]
-    private void RequestMoveServerRpc(Vector3 direction, float distance)
+    public void SetDestinationServerRpc(Vector3 targetPosition)
     {
-        transform.position += direction * distance;
+        agent.SetDestination(targetPosition);
+    }
+
+    public void SetSelected(bool isSelected)
+    {
+        if (selectionCircle != null)
+            selectionCircle.SetActive(isSelected);
     }
 }
