@@ -1,7 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
-using UnityEngine.SceneManagement;
 
 public class NetworkUI : MonoBehaviour
 {
@@ -9,7 +8,8 @@ public class NetworkUI : MonoBehaviour
     [SerializeField] private Button hostButton;
     [SerializeField] private Button clientButton;
     [SerializeField] private Text statusText;
-    [SerializeField] private string gameSceneName = "SampleScene";
+
+    private NetworkManager net => NetworkManager.Singleton;
 
     private void Start()
     {
@@ -19,30 +19,67 @@ public class NetworkUI : MonoBehaviour
 
     private void OnHostClicked()
     {
-        hostButton.interactable = false;
-        clientButton.interactable = false;
-
+        SetButtonsInteractable(false);
         statusText.text = "Ожидание второго игрока...";
-        NetworkManager.Singleton.StartHost();
 
-        NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
+        if (net.StartHost())
+        {
+            net.OnClientConnectedCallback += OnClientConnected;
+            ShowUnitSelectionUI();
+        }
+        else
+        {
+            statusText.text = "Ошибка запуска хоста.";
+            SetButtonsInteractable(true);
+        }
     }
 
     private void OnClientClicked()
     {
-        hostButton.interactable = false;
-        clientButton.interactable = false;
-
+        SetButtonsInteractable(false);
         statusText.text = "Подключение к хосту...";
-        NetworkManager.Singleton.StartClient();
+
+        if (net.StartClient())
+        {
+            net.OnClientConnectedCallback += OnConnectedToHost;
+        }
+        else
+        {
+            statusText.text = "Ошибка подключения к хосту.";
+            SetButtonsInteractable(true);
+        }
     }
 
     private void OnClientConnected(ulong clientId)
     {
-        if (NetworkManager.Singleton.ConnectedClients.Count >= 2 && NetworkManager.Singleton.IsHost)
+        if (!net.IsHost) return;
+
+        if (net.ConnectedClients.Count >= 2)
         {
-            // Загружаем игровую сцену у всех
-            NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
+            net.OnClientConnectedCallback -= OnClientConnected;
+            Debug.Log("[Host] Оба игрока подключились. Ждём выбора юнитов.");
         }
+    }
+
+    private void OnConnectedToHost(ulong clientId)
+    {
+        if (!net.IsClient) return;
+
+        net.OnClientConnectedCallback -= OnConnectedToHost;
+        Debug.Log("[Client] Подключено к хосту. Открываем выбор юнитов.");
+        ShowUnitSelectionUI();
+    }
+
+    private void ShowUnitSelectionUI()
+    {
+        UnitSelectionUI ui = FindObjectOfType<UnitSelectionUI>();
+        if (ui != null) ui.Show();
+        else Debug.LogWarning("UnitSelectionUI не найден в сцене.");
+    }
+
+    private void SetButtonsInteractable(bool interactable)
+    {
+        hostButton.interactable = interactable;
+        clientButton.interactable = interactable;
     }
 }

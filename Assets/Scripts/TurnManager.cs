@@ -1,71 +1,81 @@
 using System.Collections.Generic;
+using System.Linq;
 using Unity.Netcode;
 using UnityEngine;
 
 public class TurnManager : NetworkBehaviour
 {
-    public static TurnManager Instance;
+    public static TurnManager Instance { get; private set; }
 
-    private NetworkVariable<ulong> currentPlayerId = new NetworkVariable<ulong>(0, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
+    private readonly NetworkVariable<ulong> currentPlayerId = new(
+        0,
+        NetworkVariableReadPermission.Everyone,
+        NetworkVariableWritePermission.Server
+    );
 
-    private Dictionary<ulong, List<UnitController>> playerUnits = new();
+    private readonly Dictionary<ulong, List<UnitController>> playerUnits = new();
 
     private void Awake()
     {
         Instance = this;
     }
 
+    private new void OnDestroy()
+    {
+        if (Instance == this)
+            Instance = null;
+    }
+
     public override void OnNetworkSpawn()
     {
         if (!IsServer) return;
 
-        // Начинаем с первого подключенного игрока
-        if (NetworkManager.Singleton.ConnectedClientsList.Count > 0)
+        var firstClient = NetworkManager.Singleton.ConnectedClientsList.FirstOrDefault();
+        if (firstClient != null)
         {
-            ulong firstPlayerId = NetworkManager.Singleton.ConnectedClientsList[0].ClientId;
-            currentPlayerId.Value = firstPlayerId;
+            currentPlayerId.Value = firstClient.ClientId;
         }
     }
 
     public void RegisterUnit(UnitController unit)
     {
-        ulong ownerId = unit.OwnerClientId;
+        if (!playerUnits.TryGetValue(unit.OwnerClientId, out var units))
+        {
+            units = new List<UnitController>();
+            playerUnits[unit.OwnerClientId] = units;
+        }
 
-        if (!playerUnits.ContainsKey(ownerId))
-            playerUnits[ownerId] = new List<UnitController>();
-
-        playerUnits[ownerId].Add(unit);
+        units.Add(unit);
     }
 
-    public bool IsPlayerTurn(ulong clientId)
-    {
-        return currentPlayerId.Value == clientId;
-    }
+    public bool IsPlayerTurn(ulong clientId) => currentPlayerId.Value == clientId;
 
     [ServerRpc(RequireOwnership = false)]
     public void EndTurnServerRpc(ServerRpcParams rpcParams = default)
     {
         ulong nextPlayerId = GetNextPlayerId();
         currentPlayerId.Value = nextPlayerId;
-
         ResetUnitsForPlayer(nextPlayerId);
     }
 
     private ulong GetNextPlayerId()
     {
-        foreach (var key in playerUnits.Keys)
+        foreach (var playerId in playerUnits.Keys.ToList())
         {
-            if (key != currentPlayerId.Value)
-                return key;
+            if (playerId != currentPlayerId.Value)
+                return playerId;
         }
+
         return currentPlayerId.Value;
     }
 
     private void ResetUnitsForPlayer(ulong playerId)
     {
-        foreach (var unit in playerUnits[playerId])
+        if (!playerUnits.TryGetValue(playerId, out var units)) return;
+
+        foreach (var unit in units)
         {
-            unit.ResetTurnServerRpc(); // будет в следующем скрипте
+            unit.ResetTurnServerRpc();
         }
     }
 }

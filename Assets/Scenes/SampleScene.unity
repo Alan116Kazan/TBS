@@ -180,7 +180,7 @@ GameObject:
   - component: {fileID: 149859511}
   - component: {fileID: 149859510}
   m_Layer: 0
-  m_Name: UnitSelection
+  m_Name: UnitSelectionHandler
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1837,7 +1837,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b1da1a5b8ba76d349ac193370d6d6e3b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  unitPrefab: {fileID: 5851801071231172912, guid: ea80bda5e34ba1b42aa505b692758066,
+  shortMoveLongRangePrefab: {fileID: 5851801071231172912, guid: ea80bda5e34ba1b42aa505b692758066,
+    type: 3}
+  longMoveShortRangePrefab: {fileID: 5851801071231172912, guid: f8a1fa8511c5117458aa9f1019dff003,
     type: 3}
   player1Zone: {fileID: 899533623}
   player2Zone: {fileID: 1524991080}

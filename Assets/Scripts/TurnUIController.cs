@@ -1,35 +1,44 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
-using TMPro;
 
 public class TurnUIController : MonoBehaviour
 {
     [SerializeField] private Button endTurnButton;
     [SerializeField] private Text turnText;
 
+    private ulong myId;
+    private bool lastIsMyTurn = false;
+
     private void Start()
     {
+        myId = NetworkManager.Singleton.LocalClientId;
         endTurnButton.onClick.AddListener(OnEndTurnClicked);
+        UpdateUI(); // начальная инициализация
     }
 
     private void Update()
     {
         if (!NetworkManager.Singleton.IsClient) return;
 
-        ulong myId = NetworkManager.Singleton.LocalClientId;
-        bool isMyTurn = TurnManager.Instance != null && TurnManager.Instance.IsPlayerTurn(myId);
+        bool isMyTurn = TurnManager.Instance?.IsPlayerTurn(myId) == true;
 
-        // Обновляем UI
+        if (isMyTurn != lastIsMyTurn)
+        {
+            lastIsMyTurn = isMyTurn;
+            UpdateUI();
+        }
+    }
+
+    private void UpdateUI()
+    {
+        bool isMyTurn = lastIsMyTurn;
         turnText.text = isMyTurn ? "Ваш ход" : "Ожидайте хода соперника...";
         endTurnButton.interactable = isMyTurn;
     }
 
     private void OnEndTurnClicked()
     {
-        if (TurnManager.Instance != null)
-        {
-            TurnManager.Instance.EndTurnServerRpc();
-        }
+        TurnManager.Instance?.EndTurnServerRpc();
     }
 }

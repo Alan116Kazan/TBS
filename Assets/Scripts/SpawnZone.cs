@@ -2,19 +2,24 @@ using UnityEngine;
 
 public class SpawnZone : MonoBehaviour
 {
-    [SerializeField] private Vector2 size = new Vector2(3, 3);
+    [SerializeField] private Vector2 size = new(3f, 3f);
 
     public Vector3 GetRandomSpawnPosition()
     {
-        float x = Random.Range(-size.x / 2f, size.x / 2f);
-        float z = Random.Range(-size.y / 2f, size.y / 2f);
-        Vector3 localOffset = new Vector3(x, 0f, z);
-        return transform.position + localOffset;
+        float halfWidth = size.x * 0.5f;
+        float halfDepth = size.y * 0.5f;
+
+        float x = Random.Range(-halfWidth, halfWidth);
+        float z = Random.Range(-halfDepth, halfDepth);
+
+        return transform.position + new Vector3(x, 0f, z);
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        Gizmos.DrawWireCube(transform.position, new Vector3(size.x, 0.1f, size.y));
+        Gizmos.DrawWireCube(transform.position, new Vector3(size.x, 0.01f, size.y));
     }
+
+    public Vector2 Size => size; // если понадобится доступ к размеру извне
 }
