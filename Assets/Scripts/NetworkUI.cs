@@ -1,63 +1,48 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
+using UnityEngine.SceneManagement;
 
 public class NetworkUI : MonoBehaviour
 {
-    [SerializeField] private Button _hostButton;
-    [SerializeField] private Button _clientButton;
+    [Header("UI Elements")]
+    [SerializeField] private Button hostButton;
+    [SerializeField] private Button clientButton;
+    [SerializeField] private Text statusText;
+    [SerializeField] private string gameSceneName = "SampleScene";
 
     private void Start()
     {
-        // Защита от отсутствия NetworkManager
-        if (NetworkManager.Singleton == null)
-        {
-            Debug.LogError("NetworkManager.Singleton is null. Ensure NetworkManager is in the scene.");
-            return;
-        }
+        hostButton.onClick.AddListener(OnHostClicked);
+        clientButton.onClick.AddListener(OnClientClicked);
+    }
 
-        // Назначаем корректные обработчики кнопок
-        _hostButton.onClick.AddListener(StartHost);
-        _clientButton.onClick.AddListener(StartClient);
+    private void OnHostClicked()
+    {
+        hostButton.interactable = false;
+        clientButton.interactable = false;
 
-        // Подписываемся на событие подключения клиента
+        statusText.text = "Ожидание второго игрока...";
+        NetworkManager.Singleton.StartHost();
+
         NetworkManager.Singleton.OnClientConnectedCallback += OnClientConnected;
     }
 
-    private void OnDestroy()
+    private void OnClientClicked()
     {
-        if (NetworkManager.Singleton != null)
-        {
-            NetworkManager.Singleton.OnClientConnectedCallback -= OnClientConnected;
-        }
+        hostButton.interactable = false;
+        clientButton.interactable = false;
+
+        statusText.text = "Подключение к хосту...";
+        NetworkManager.Singleton.StartClient();
     }
 
     private void OnClientConnected(ulong clientId)
     {
-        Debug.Log($"Client connected: {clientId}");
-    }
-
-    private void StartHost()
-    {
-        if (NetworkManager.Singleton.StartHost())
+        if (NetworkManager.Singleton.ConnectedClients.Count >= 2 && NetworkManager.Singleton.IsHost)
         {
-            Debug.Log("Started as Host");
-        }
-        else
-        {
-            Debug.LogError("Failed to start as Host.");
-        }
-    }
-
-    private void StartClient()
-    {
-        if (NetworkManager.Singleton.StartClient())
-        {
-            Debug.Log("Started as Client");
-        }
-        else
-        {
-            Debug.LogError("Failed to start as Client.");
+            // Загружаем игровую сцену у всех
+            NetworkManager.Singleton.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
         }
     }
 }
