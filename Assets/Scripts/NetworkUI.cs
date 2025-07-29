@@ -9,7 +9,7 @@ public class NetworkUI : MonoBehaviour
     [SerializeField] private Button clientButton;
     [SerializeField] private Text statusText;
 
-    private NetworkManager net => NetworkManager.Singleton;
+    private NetworkManager _net => NetworkManager.Singleton;
 
     private void Start()
     {
@@ -22,9 +22,9 @@ public class NetworkUI : MonoBehaviour
         SetButtonsInteractable(false);
         statusText.text = "Ожидание второго игрока...";
 
-        if (net.StartHost())
+        if (_net.StartHost())
         {
-            net.OnClientConnectedCallback += OnClientConnected;
+            _net.OnClientConnectedCallback += OnClientConnected;
             ShowUnitSelectionUI();
         }
         else
@@ -39,9 +39,9 @@ public class NetworkUI : MonoBehaviour
         SetButtonsInteractable(false);
         statusText.text = "Подключение к хосту...";
 
-        if (net.StartClient())
+        if (_net.StartClient())
         {
-            net.OnClientConnectedCallback += OnConnectedToHost;
+            _net.OnClientConnectedCallback += OnConnectedToHost;
         }
         else
         {
@@ -52,20 +52,20 @@ public class NetworkUI : MonoBehaviour
 
     private void OnClientConnected(ulong clientId)
     {
-        if (!net.IsHost) return;
+        if (!_net.IsHost) return;
 
-        if (net.ConnectedClients.Count >= 2)
+        if (_net.ConnectedClients.Count >= 2)
         {
-            net.OnClientConnectedCallback -= OnClientConnected;
+            _net.OnClientConnectedCallback -= OnClientConnected;
             Debug.Log("[Host] Оба игрока подключились. Ждём выбора юнитов.");
         }
     }
 
     private void OnConnectedToHost(ulong clientId)
     {
-        if (!net.IsClient) return;
+        if (!_net.IsClient) return;
 
-        net.OnClientConnectedCallback -= OnConnectedToHost;
+        _net.OnClientConnectedCallback -= OnConnectedToHost;
         Debug.Log("[Client] Подключено к хосту. Открываем выбор юнитов.");
         ShowUnitSelectionUI();
     }

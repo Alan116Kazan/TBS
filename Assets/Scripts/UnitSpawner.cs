@@ -16,7 +16,7 @@ public class UnitSpawner : NetworkBehaviour
     [Header("Hierarchy")]
     [SerializeField] private Transform unitsContainer;
 
-    private readonly HashSet<ulong> spawnedClients = new();
+    private readonly HashSet<ulong> _spawnedClients = new();
 
     public override void OnNetworkSpawn()
     {
@@ -48,7 +48,7 @@ public class UnitSpawner : NetworkBehaviour
 
     private void TrySpawnUnit(ulong clientId)
     {
-        if (spawnedClients.Contains(clientId)) return;
+        if (_spawnedClients.Contains(clientId)) return;
 
         var selection = UnitSelectionManager.Instance.GetSelectionForClient(clientId);
         if (selection == null)
@@ -59,17 +59,17 @@ public class UnitSpawner : NetworkBehaviour
 
         SpawnZone zone = clientId == 0 ? player1Zone : player2Zone;
 
-        for (int i = 0; i < selection.shortMoveLongRangeCount; i++)
+        for (int i = 0; i < selection.SlowUnitCount; i++)
         {
             SpawnUnit(shortMoveLongRangePrefab, clientId, zone);
         }
 
-        for (int i = 0; i < selection.longMoveShortRangeCount; i++)
+        for (int i = 0; i < selection.FastUnitCount; i++)
         {
             SpawnUnit(longMoveShortRangePrefab, clientId, zone);
         }
 
-        spawnedClients.Add(clientId);
+        _spawnedClients.Add(clientId);
     }
 
     private void SpawnUnit(GameObject prefab, ulong clientId, SpawnZone zone)

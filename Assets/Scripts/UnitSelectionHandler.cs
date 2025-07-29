@@ -5,22 +5,22 @@ using UnityEngine.AI;
 
 public class UnitSelectionHandler : MonoBehaviour
 {
-    private Camera mainCamera;
-    private UnitController selectedUnit;
-    private UnitController attackTarget;
+    private Camera _mainCamera;
+    private UnitController _selectedUnit;
+    private UnitController _attackTarget;
 
-    private Vector3? predictedTarget;
-    private float lastRightClickTime;
-    private const float doubleClickThreshold = 0.3f;
+    private Vector3? _predictedTarget;
+    private float _lastRightClickTime;
+    private const float _doubleClickThreshold = 0.3f;
 
-    private float lastReportedDistance = -1f;
+    private float _lastReportedDistance = -1f;
 
     [SerializeField] private LineRenderer greenLineRenderer;
     [SerializeField] private LineRenderer redLineRenderer;
 
     private void Start()
     {
-        mainCamera = Camera.main;
+        _mainCamera = Camera.main;
         ClearPrediction();
     }
 
@@ -32,50 +32,49 @@ public class UnitSelectionHandler : MonoBehaviour
         if (!TurnManager.Instance.IsPlayerTurn(myId)) return;
 
         if (Input.GetMouseButtonDown(0)) HandleLeftClick();
-        else if (Input.GetMouseButtonDown(1) && selectedUnit != null) HandleRightClick();
+        else if (Input.GetMouseButtonDown(1) && _selectedUnit != null) HandleRightClick();
 
-        if (selectedUnit)
+        if (_selectedUnit)
         {
-            float currentDistance = selectedUnit.RemainingMoveDistance;
-            if (Mathf.Abs(currentDistance - lastReportedDistance) > 0.01f)
+            float currentDistance = _selectedUnit.RemainingMoveDistance;
+            if (Mathf.Abs(currentDistance - _lastReportedDistance) > 0.01f)
             {
                 Debug.Log($"Оставшееся расстояние: {currentDistance:F2} м");
-                lastReportedDistance = currentDistance;
+                _lastReportedDistance = currentDistance;
             }
         }
         else
         {
-            lastReportedDistance = -1f;
+            _lastReportedDistance = -1f;
         }
     }
 
     private void HandleLeftClick()
     {
-        if (!Physics.Raycast(mainCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit)) return;
+        if (!Physics.Raycast(_mainCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit)) return;
 
         if (hit.collider.TryGetComponent(out UnitController unit) &&
             unit.OwnerClientId == NetworkManager.Singleton.LocalClientId)
         {
-            // Запрет выбора юнита, если он полностью завершил ход (атаковал и исчерпал движение)
             if (unit.HasAttacked && unit.RemainingMoveDistance <= 0f)
             {
                 Debug.Log("Этот юнит уже завершил ход.");
                 return;
             }
 
-            if (selectedUnit != unit)
+            if (_selectedUnit != unit)
             {
-                selectedUnit?.SetSelected(false);
+                _selectedUnit?.SetSelected(false);
                 ClearAttackTarget();
 
-                selectedUnit = unit;
-                selectedUnit.SetSelected(true);
+                _selectedUnit = unit;
+                _selectedUnit.SetSelected(true);
             }
         }
         else
         {
-            selectedUnit?.SetSelected(false);
-            selectedUnit = null;
+            _selectedUnit?.SetSelected(false);
+            _selectedUnit = null;
             ClearPrediction();
             ClearAttackTarget();
         }
@@ -83,62 +82,58 @@ public class UnitSelectionHandler : MonoBehaviour
 
     private void HandleRightClick()
     {
-        if (!Physics.Raycast(mainCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit)) return;
-        if (selectedUnit == null) return;
+        if (!Physics.Raycast(_mainCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit)) return;
+        if (_selectedUnit == null) return;
 
-        // Разрешаем движение даже после атаки, но не разрешаем повторную атаку
-        if (selectedUnit.HasAttacked && hit.collider.TryGetComponent<UnitController>(out UnitController clickedUnit))
+        // Разрешаем движение после атаки, но запрет повторной атаки
+        if (_selectedUnit.HasAttacked && hit.collider.TryGetComponent<UnitController>(out UnitController clickedUnit))
         {
             if (clickedUnit.OwnerClientId != NetworkManager.Singleton.LocalClientId)
             {
                 Debug.Log("Этот юнит уже атаковал и не может атаковать снова.");
-                return; // не даём повторно атаковать
+                return;
             }
         }
 
         if (hit.collider.TryGetComponent<UnitController>(out UnitController clickedUnit2))
         {
-            // Кликнули по своему юниту — снимаем цель атаки
+            // Клик по своему юниту — снимаем цель атаки
             if (clickedUnit2.OwnerClientId == NetworkManager.Singleton.LocalClientId)
             {
                 ClearAttackTarget();
                 return;
             }
 
-            // Кликнули по вражескому юниту — проверяем радиус атаки
-            if (!selectedUnit.IsTargetInRange(clickedUnit2.transform.position))
+            // Клик по вражескому юниту — проверка радиуса атаки
+            if (!_selectedUnit.IsTargetInRange(clickedUnit2.transform.position))
             {
                 Debug.Log("Цель вне радиуса атаки");
                 ClearAttackTarget();
                 return;
             }
 
-            // Если юнит уже атаковал — не позволяем атаковать снова
-            if (selectedUnit.HasAttacked)
+            if (_selectedUnit.HasAttacked)
             {
                 Debug.Log("Этот юнит уже атаковал.");
                 return;
             }
 
-            // Если новая цель — выделяем её
-            if (attackTarget != clickedUnit2)
+            if (_attackTarget != clickedUnit2)
             {
                 ClearAttackTarget();
 
-                attackTarget = clickedUnit2;
-                attackTarget.SetAttackTargetSelected(true);
+                _attackTarget = clickedUnit2;
+                _attackTarget.SetAttackTargetSelected(true);
 
                 Debug.Log("Цель выбрана для атаки. Повторите клик для подтверждения.");
                 return;
             }
             else
             {
-                // Повторный клик — атака
-                selectedUnit.TryAttackServerRpc(attackTarget.transform.position);
-                Debug.Log($"Атака по цели {attackTarget.name}!");
+                _selectedUnit.TryAttackServerRpc(_attackTarget.transform.position);
+                Debug.Log($"Атака по цели {_attackTarget.name}!");
 
                 ClearAttackTarget();
-                // Не сбрасываем selection — юнит может двигаться дальше после атаки
                 ClearPrediction();
             }
         }
@@ -147,36 +142,38 @@ public class UnitSelectionHandler : MonoBehaviour
             // Клик по пустому месту — перемещение
             ClearAttackTarget();
 
-            if (!predictedTarget.HasValue || Vector3.Distance(predictedTarget.Value, hit.point) > 0.5f)
+            if (!_predictedTarget.HasValue || Vector3.Distance(_predictedTarget.Value, hit.point) > 0.5f)
             {
-                predictedTarget = hit.point;
+                _predictedTarget = hit.point;
                 DrawPrediction(hit.point);
-                lastRightClickTime = Time.time;
+                _lastRightClickTime = Time.time;
                 return;
             }
 
-            if (Time.time - lastRightClickTime < doubleClickThreshold)
+            if (Time.time - _lastRightClickTime < _doubleClickThreshold)
             {
-                selectedUnit.TryMoveServerRpc(hit.point);
+                _selectedUnit.TryMoveServerRpc(hit.point);
                 ClearPrediction();
             }
             else
             {
-                lastRightClickTime = Time.time;
+                _lastRightClickTime = Time.time;
             }
         }
     }
 
     private void DrawPrediction(Vector3 target)
     {
-        if (!selectedUnit || !greenLineRenderer || !redLineRenderer) return;
-        if (!selectedUnit.TryGetComponent(out NavMeshAgent agent)) return;
+        if (!_selectedUnit || !greenLineRenderer || !redLineRenderer) return;
+
+        NavMeshAgent agent = _selectedUnit.NavAgent;
+        if (agent == null) return;
 
         NavMeshPath path = new NavMeshPath();
         if (!agent.CalculatePath(target, path)) return;
 
         Vector3[] corners = path.corners;
-        float moveLimit = selectedUnit.RemainingMoveDistance;
+        float moveLimit = _selectedUnit.RemainingMoveDistance;
 
         float totalLength = 0f;
         int splitIndex = corners.Length;
@@ -194,7 +191,7 @@ public class UnitSelectionHandler : MonoBehaviour
             totalLength += segment;
         }
 
-        List<Vector3> greenPoints = new();
+        List<Vector3> greenPoints = new List<Vector3>();
         for (int i = 0; i < splitIndex; i++)
             greenPoints.Add(corners[i]);
 
@@ -209,7 +206,7 @@ public class UnitSelectionHandler : MonoBehaviour
 
         if (splitIndex < corners.Length)
         {
-            List<Vector3> redPoints = new() { greenPoints[^1] };
+            List<Vector3> redPoints = new List<Vector3> { greenPoints[^1] };
             for (int i = splitIndex; i < corners.Length; i++)
                 redPoints.Add(corners[i]);
 
@@ -224,17 +221,17 @@ public class UnitSelectionHandler : MonoBehaviour
 
     private void ClearPrediction()
     {
-        predictedTarget = null;
+        _predictedTarget = null;
         if (greenLineRenderer) greenLineRenderer.positionCount = 0;
         if (redLineRenderer) redLineRenderer.positionCount = 0;
     }
 
     private void ClearAttackTarget()
     {
-        if (attackTarget != null)
+        if (_attackTarget != null)
         {
-            attackTarget.SetAttackTargetSelected(false);
-            attackTarget = null;
+            _attackTarget.SetAttackTargetSelected(false);
+            _attackTarget = null;
         }
     }
 }

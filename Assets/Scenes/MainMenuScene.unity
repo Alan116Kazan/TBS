@@ -1220,7 +1220,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0448a304ae1d4af43bc7bfc7b3677b59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  gameSceneName: SampleScene
+  _gameSceneName: SampleScene
 --- !u!4 &1018698515
 Transform:
   m_ObjectHideFlags: 0
@@ -1250,8 +1250,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   panel: {fileID: 2062824376}
   startButton: {fileID: 648911118}
-  shortRangeInput: {fileID: 556713586}
-  longRangeInput: {fileID: 1109602956}
+  FastUnitInput: {fileID: 556713586}
+  SlowUnitInput: {fileID: 1109602956}
 --- !u!1 &1109602955
 GameObject:
   m_ObjectHideFlags: 0

@@ -13,7 +13,7 @@ public class MapGenerator : NetworkBehaviour
     [SerializeField] private int minObstacles = 5;
     [SerializeField] private int maxObstacles = 15;
 
-    private readonly HashSet<Vector2Int> occupiedCells = new();
+    private readonly HashSet<Vector2Int> _occupiedCells = new();
 
     public override void OnNetworkSpawn()
     {
@@ -32,7 +32,7 @@ public class MapGenerator : NetworkBehaviour
             do
             {
                 cell = new Vector2Int(Random.Range(0, width), Random.Range(0, height));
-            } while (!occupiedCells.Add(cell)); // Add returns false if already present
+            } while (!_occupiedCells.Add(cell)); // Add returns false if already present
 
             Vector3 position = new Vector3(cell.x + 0.5f, 0.5f, cell.y + 0.5f);
             GameObject obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);

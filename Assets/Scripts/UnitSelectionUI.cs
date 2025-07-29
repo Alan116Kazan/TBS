@@ -6,8 +6,8 @@ public class UnitSelectionUI : MonoBehaviour
 {
     [SerializeField] private GameObject panel;
     [SerializeField] private Button startButton;
-    [SerializeField] private InputField shortRangeInput;
-    [SerializeField] private InputField longRangeInput;
+    [SerializeField] private InputField FastUnitInput;
+    [SerializeField] private InputField SlowUnitInput;
 
     private void Start()
     {
@@ -22,13 +22,13 @@ public class UnitSelectionUI : MonoBehaviour
 
     private void OnSubmitSelection()
     {
-        int.TryParse(shortRangeInput.text, out int shortCount);
-        int.TryParse(longRangeInput.text, out int longCount);
+        int.TryParse(FastUnitInput.text, out int shortCount);
+        int.TryParse(SlowUnitInput.text, out int longCount);
 
         var selection = new PlayerUnitSelectionData
         {
-            longMoveShortRangeCount = shortCount,
-            shortMoveLongRangeCount = longCount
+            FastUnitCount = shortCount,
+            SlowUnitCount = longCount
         };
 
         UnitSelectionManager.Instance.SubmitSelection(selection);

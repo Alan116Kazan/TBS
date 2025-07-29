@@ -7,12 +7,12 @@ public class TurnUIController : MonoBehaviour
     [SerializeField] private Button endTurnButton;
     [SerializeField] private Text turnText;
 
-    private ulong myId;
-    private bool lastIsMyTurn = false;
+    private ulong _myId;
+    private bool _lastIsMyTurn = false;
 
     private void Start()
     {
-        myId = NetworkManager.Singleton.LocalClientId;
+        _myId = NetworkManager.Singleton.LocalClientId;
         endTurnButton.onClick.AddListener(OnEndTurnClicked);
         UpdateUI(); // начальная инициализация
     }
@@ -21,18 +21,18 @@ public class TurnUIController : MonoBehaviour
     {
         if (!NetworkManager.Singleton.IsClient) return;
 
-        bool isMyTurn = TurnManager.Instance?.IsPlayerTurn(myId) == true;
+        bool isMyTurn = TurnManager.Instance?.IsPlayerTurn(_myId) == true;
 
-        if (isMyTurn != lastIsMyTurn)
+        if (isMyTurn != _lastIsMyTurn)
         {
-            lastIsMyTurn = isMyTurn;
+            _lastIsMyTurn = isMyTurn;
             UpdateUI();
         }
     }
 
     private void UpdateUI()
     {
-        bool isMyTurn = lastIsMyTurn;
+        bool isMyTurn = _lastIsMyTurn;
         turnText.text = isMyTurn ? "Ваш ход" : "Ожидайте хода соперника...";
         endTurnButton.interactable = isMyTurn;
     }

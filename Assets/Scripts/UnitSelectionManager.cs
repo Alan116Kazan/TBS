@@ -7,9 +7,9 @@ public class UnitSelectionManager : NetworkBehaviour
 {
     public static UnitSelectionManager Instance { get; private set; }
 
-    private readonly Dictionary<ulong, PlayerUnitSelectionData> playerSelections = new();
+    private readonly Dictionary<ulong, PlayerUnitSelectionData> _playerSelections = new();
 
-    [SerializeField] private string gameSceneName = "SampleScene";
+    [SerializeField] private string _gameSceneName = "SampleScene";
 
     private void Awake()
     {
@@ -23,7 +23,7 @@ public class UnitSelectionManager : NetworkBehaviour
     {
         if (NetworkManager.Singleton.IsClient)
         {
-            SubmitSelectionServerRpc(selection.shortMoveLongRangeCount, selection.longMoveShortRangeCount);
+            SubmitSelectionServerRpc(selection.SlowUnitCount, selection.FastUnitCount);
         }
     }
 
@@ -32,22 +32,22 @@ public class UnitSelectionManager : NetworkBehaviour
     {
         ulong clientId = rpcParams.Receive.SenderClientId;
 
-        playerSelections[clientId] = new PlayerUnitSelectionData
+        _playerSelections[clientId] = new PlayerUnitSelectionData
         {
-            shortMoveLongRangeCount = longRange,
-            longMoveShortRangeCount = shortRange
+            SlowUnitCount = longRange,
+            FastUnitCount = shortRange
         };
 
         Debug.Log($"[Server] Игрок {clientId} выбрал: дальнобойных={longRange}, ближних={shortRange}");
 
-        if (playerSelections.Count >= 2)
+        if (_playerSelections.Count >= 2)
         {
-            NetworkManager.SceneManager.LoadScene(gameSceneName, LoadSceneMode.Single);
+            NetworkManager.SceneManager.LoadScene(_gameSceneName, LoadSceneMode.Single);
         }
     }
 
     public PlayerUnitSelectionData GetSelectionForClient(ulong clientId)
     {
-        return playerSelections.TryGetValue(clientId, out var data) ? data : null;
+        return _playerSelections.TryGetValue(clientId, out var data) ? data : null;
     }
 }
