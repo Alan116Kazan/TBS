@@ -1179,7 +1179,6 @@ GameObject:
   - component: {fileID: 1018698515}
   - component: {fileID: 1018698513}
   - component: {fileID: 1018698514}
-  - component: {fileID: 1018698516}
   m_Layer: 0
   m_Name: UnitSelectionManager
   m_TagString: Untagged
@@ -1236,22 +1235,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1018698516
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1018698512}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 3bba5b8323422ae4e892f5aba51a1c2f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  panel: {fileID: 2062824376}
-  startButton: {fileID: 648911118}
-  FastUnitInput: {fileID: 556713586}
-  SlowUnitInput: {fileID: 1109602956}
 --- !u!1 &1109602955
 GameObject:
   m_ObjectHideFlags: 0
