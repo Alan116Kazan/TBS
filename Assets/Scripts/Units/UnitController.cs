@@ -80,4 +80,28 @@ public class UnitController : NetworkBehaviour
     {
         return _attack?.IsTargetInRange(targetPosition) ?? false;
     }
+
+    [ClientRpc]
+    private void DisableOnClientRpc()
+    {
+        gameObject.SetActive(false);
+    }
+
+    public void Die()
+    {
+        if (!IsServer) return;
+
+        Debug.Log($"Unit {name} умирает и отключается на сервере");
+
+        DisableOnClientRpc(); // Отключаем на всех клиентах
+        gameObject.SetActive(false); // И на хосте тоже
+    }
+
+    [ServerRpc(RequireOwnership = false)]
+    public void RequestDieServerRpc()
+    {
+        Die();
+    }
+
+
 }

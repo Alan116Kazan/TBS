@@ -1,254 +1,113 @@
-using UnityEngine;
 using Unity.Netcode;
-using UnityEngine.AI;
-using System.Collections.Generic;
+using UnityEngine;
 
 public class UnitSelectionHandler : MonoBehaviour
 {
-    private Camera _mainCamera;
-    private UnitController _selectedUnit;
-    private UnitController _attackTarget;
-    private Vector3? _predictedTarget;
-    private float _lastRightClickTime;
-    private const float _doubleClickThreshold = 0.3f;
-    private float _lastReportedDistance = -1f;
-
     [SerializeField] private LineRenderer greenLineRenderer;
     [SerializeField] private LineRenderer redLineRenderer;
 
-    private void OnEnable()
+    private Camera _camera;
+    private UnitSelector _selector;
+    private AttackHandler _attackHandler;
+    private MovePredictionDrawer _predictor;
+
+    private Vector3? _prediction;
+    private float _lastClickTime;
+    private const float DoubleClickThreshold = 0.3f;
+
+    private void Awake()
     {
-        GameEvents.OnTurnStarted += OnTurnStarted;
+        _selector = new UnitSelector();
+        _attackHandler = new AttackHandler();
+        _predictor = new MovePredictionDrawer(greenLineRenderer, redLineRenderer);
     }
 
-    private void OnDisable()
-    {
-        GameEvents.OnTurnStarted -= OnTurnStarted;
-    }
+    private void Start() => _camera = Camera.main;
 
-    private void Start()
+    private void OnEnable() => GameEvents.OnTurnStarted += OnTurnStarted;
+
+    private void OnDisable() => GameEvents.OnTurnStarted -= OnTurnStarted;
+
+    private void OnTurnStarted(ulong id)
     {
-        _mainCamera = Camera.main;
-        ClearPrediction();
+        if (id != NetworkManager.Singleton.LocalClientId)
+        {
+            _selector.Deselect();
+            _attackHandler.ClearTarget();
+            _predictor.Clear();
+            _prediction = null;
+        }
+        else if (_prediction.HasValue && _selector.SelectedUnit != null)
+        {
+            _predictor.Draw(_selector.SelectedUnit, _prediction.Value);
+        }
     }
 
     private void Update()
     {
-        if (!NetworkManager.Singleton?.IsConnectedClient ?? true) return;
+        if (!NetworkManager.Singleton.IsConnectedClient) return;
 
-        ulong myId = NetworkManager.Singleton.LocalClientId;
-        if (!TurnManager.Instance.IsPlayerTurn(myId)) return;
+        if (!TurnManager.Instance.IsPlayerTurn(NetworkManager.Singleton.LocalClientId)) return;
 
         if (Input.GetMouseButtonDown(0)) HandleLeftClick();
-        else if (Input.GetMouseButtonDown(1) && _selectedUnit != null) HandleRightClick();
-
-        if (_selectedUnit)
-        {
-            float currentDistance = _selectedUnit.RemainingMoveDistance;
-            if (Mathf.Abs(currentDistance - _lastReportedDistance) > 0.01f)
-            {
-                Debug.Log($"Оставшееся расстояние: {currentDistance:F2} м");
-                _lastReportedDistance = currentDistance;
-            }
-        }
-        else
-        {
-            _lastReportedDistance = -1f;
-        }
-    }
-
-    private void OnTurnStarted(ulong activePlayerId)
-    {
-        if (_selectedUnit == null) return;
-
-        if (activePlayerId != NetworkManager.Singleton.LocalClientId)
-        {
-            // Сбрасываем выбор и визуализацию, когда ход не наш
-            _selectedUnit.SetSelected(false);
-            _selectedUnit = null;
-            ClearPrediction();
-            ClearAttackTarget();
-        }
-        else
-        {
-            // Если ход наш, обновляем предсказание пути (если оно есть)
-            if (_predictedTarget.HasValue)
-                DrawPrediction(_predictedTarget.Value);
-        }
+        else if (Input.GetMouseButtonDown(1) && _selector.SelectedUnit != null) HandleRightClick();
     }
 
     private void HandleLeftClick()
     {
-        if (!Physics.Raycast(_mainCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit)) return;
+        if (!Physics.Raycast(_camera.ScreenPointToRay(Input.mousePosition), out var hit)) return;
 
         if (hit.collider.TryGetComponent(out UnitController unit) &&
             unit.OwnerId == NetworkManager.Singleton.LocalClientId)
         {
-            if (unit.HasAttacked && unit.RemainingMoveDistance <= 0f)
-            {
-                Debug.Log("Этот юнит уже завершил ход.");
-                return;
-            }
+            if (unit.HasAttacked && unit.RemainingMoveDistance <= 0f) return;
 
-            if (_selectedUnit != unit)
-            {
-                _selectedUnit?.SetSelected(false);
-                ClearAttackTarget();
-
-                _selectedUnit = unit;
-                _selectedUnit.SetSelected(true);
-            }
+            _selector.Select(unit);
         }
         else
         {
-            _selectedUnit?.SetSelected(false);
-            _selectedUnit = null;
-            ClearPrediction();
-            ClearAttackTarget();
+            _selector.Deselect();
+            _attackHandler.ClearTarget();
+            _predictor.Clear();
+            _prediction = null;
         }
     }
 
     private void HandleRightClick()
     {
-        if (!Physics.Raycast(_mainCamera.ScreenPointToRay(Input.mousePosition), out RaycastHit hit)) return;
+        if (!Physics.Raycast(_camera.ScreenPointToRay(Input.mousePosition), out var hit)) return;
 
-        if (_selectedUnit.HasAttacked && hit.collider.TryGetComponent<UnitController>(out UnitController clickedUnit) &&
-            clickedUnit.OwnerId != NetworkManager.Singleton.LocalClientId)
+        var selected = _selector.SelectedUnit;
+        if (hit.collider.TryGetComponent(out UnitController target))
         {
-            Debug.Log("Этот юнит уже атаковал и не может атаковать снова.");
+            if (target.OwnerId == NetworkManager.Singleton.LocalClientId)
+            {
+                _attackHandler.ClearTarget();
+                return;
+            }
+
+            _attackHandler.HandleAttack(selected, target);
+            _prediction = null;
             return;
         }
 
-        if (hit.collider.TryGetComponent<UnitController>(out UnitController clickedUnit2))
+        _attackHandler.ClearTarget();
+
+        if (!_prediction.HasValue || Vector3.Distance(_prediction.Value, hit.point) > 0.5f)
         {
-            if (clickedUnit2.OwnerId == NetworkManager.Singleton.LocalClientId)
-            {
-                ClearAttackTarget();
-                return;
-            }
-
-            if (!_selectedUnit.IsTargetInRange(clickedUnit2.transform.position))
-            {
-                Debug.Log("Цель вне радиуса атаки");
-                ClearAttackTarget();
-                return;
-            }
-
-            if (_selectedUnit.HasAttacked)
-            {
-                Debug.Log("Этот юнит уже атаковал.");
-                return;
-            }
-
-            if (_attackTarget != clickedUnit2)
-            {
-                ClearAttackTarget();
-                _attackTarget = clickedUnit2;
-                _attackTarget.SetAttackTargetSelected(true);
-                Debug.Log("Цель выбрана для атаки. Повторите клик для подтверждения.");
-                return;
-            }
-            else
-            {
-                _selectedUnit.TryAttack(_attackTarget.transform.position);
-                Debug.Log($"Атака по цели {_attackTarget.name}!");
-                ClearAttackTarget();
-                ClearPrediction();
-            }
+            _prediction = hit.point;
+            _predictor.Draw(selected, hit.point);
+            _lastClickTime = Time.time;
+        }
+        else if (Time.time - _lastClickTime < DoubleClickThreshold)
+        {
+            selected.TryMove(hit.point);
+            _predictor.Clear();
+            _prediction = null;
         }
         else
         {
-            ClearAttackTarget();
-
-            if (!_predictedTarget.HasValue || Vector3.Distance(_predictedTarget.Value, hit.point) > 0.5f)
-            {
-                _predictedTarget = hit.point;
-                DrawPrediction(hit.point);
-                _lastRightClickTime = Time.time;
-                return;
-            }
-
-            if (Time.time - _lastRightClickTime < _doubleClickThreshold)
-            {
-                _selectedUnit.TryMove(hit.point);
-                ClearPrediction();
-            }
-            else
-            {
-                _lastRightClickTime = Time.time;
-            }
-        }
-    }
-
-    private void DrawPrediction(Vector3 target)
-    {
-        if (_selectedUnit == null || !greenLineRenderer || !redLineRenderer) return;
-
-        NavMeshAgent agent = _selectedUnit.NavAgent;
-        if (agent == null) return;
-
-        NavMeshPath path = new NavMeshPath();
-        if (!agent.CalculatePath(target, path)) return;
-
-        Vector3[] corners = path.corners;
-        float moveLimit = _selectedUnit.RemainingMoveDistance;
-
-        float totalLength = 0f;
-        int splitIndex = corners.Length;
-        float overshoot = 0f;
-
-        for (int i = 1; i < corners.Length; i++)
-        {
-            float segment = Vector3.Distance(corners[i - 1], corners[i]);
-            if (totalLength + segment >= moveLimit)
-            {
-                splitIndex = i;
-                overshoot = moveLimit - totalLength;
-                break;
-            }
-            totalLength += segment;
-        }
-
-        List<Vector3> greenPoints = new();
-        for (int i = 0; i < splitIndex; i++) greenPoints.Add(corners[i]);
-
-        if (splitIndex < corners.Length)
-        {
-            Vector3 dir = (corners[splitIndex] - corners[splitIndex - 1]).normalized;
-            greenPoints.Add(corners[splitIndex - 1] + dir * overshoot);
-        }
-
-        greenLineRenderer.positionCount = greenPoints.Count;
-        greenLineRenderer.SetPositions(greenPoints.ToArray());
-
-        if (splitIndex < corners.Length)
-        {
-            List<Vector3> redPoints = new() { greenPoints[^1] };
-            for (int i = splitIndex; i < corners.Length; i++)
-                redPoints.Add(corners[i]);
-
-            redLineRenderer.positionCount = redPoints.Count;
-            redLineRenderer.SetPositions(redPoints.ToArray());
-        }
-        else
-        {
-            redLineRenderer.positionCount = 0;
-        }
-    }
-
-    private void ClearPrediction()
-    {
-        _predictedTarget = null;
-        if (greenLineRenderer) greenLineRenderer.positionCount = 0;
-        if (redLineRenderer) redLineRenderer.positionCount = 0;
-    }
-
-    private void ClearAttackTarget()
-    {
-        if (_attackTarget != null)
-        {
-            _attackTarget.SetAttackTargetSelected(false);
-            _attackTarget = null;
+            _lastClickTime = Time.time;
         }
     }
 }
