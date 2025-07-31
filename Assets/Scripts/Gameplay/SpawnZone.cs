@@ -19,27 +19,27 @@ public class SpawnZone : MonoBehaviour
         float halfWidth = size.x * 0.5f;
         float halfDepth = size.y * 0.5f;
 
-        // Генерируем координаты внутри прямоугольника [-halfWidth, halfWidth], [-halfDepth, halfDepth]
+        // Генерируем случайные координаты внутри прямоугольника [-halfWidth, halfWidth] и [-halfDepth, halfDepth]
         float x = Random.Range(-halfWidth, halfWidth);
         float z = Random.Range(-halfDepth, halfDepth);
 
-        // Складываем с позицией объекта, возвращая мировую позицию
+        // Возвращаем позицию в мировых координатах, добавляя смещение к позиции объекта
         return transform.position + new Vector3(x, 0f, z);
     }
 
     /// <summary>
-    /// Визуализация зоны спавна в редакторе,
-    /// когда объект выделен.
+    /// Визуализация зоны спавна в редакторе, когда объект выделен.
+    /// Рисует проволочный прямоугольник для удобства редактирования.
     /// </summary>
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.green;
-        // Рисуем проволочный прямоугольник, толщиной 0.01 по Y
+        // Рисуем проволочный куб с размерами size по X и Z, с очень маленькой высотой по Y (0.01)
         Gizmos.DrawWireCube(transform.position, new Vector3(size.x, 0.01f, size.y));
     }
 
     /// <summary>
-    /// Публичное свойство для доступа к размеру зоны.
+    /// Публичное свойство для доступа к размеру зоны спавна.
     /// </summary>
     public Vector2 Size => size;
 }

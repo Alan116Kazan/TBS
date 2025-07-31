@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public class UnitData : MonoBehaviour
 {
-    // —сылка на ScriptableObject, где хран€тс€ основные характеристики юнита
+    // —сылка на ScriptableObject с основными характеристиками юнита
     [SerializeField]
     private UnitStats stats;
 

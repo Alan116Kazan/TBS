@@ -2,49 +2,57 @@ using UnityEngine;
 
 /// <summary>
 /// Отвечает за визуальное отображение состояния юнита:
-/// - выбран/не выбран
-/// - цель для атаки
-/// - радиус атаки
+/// - выбран/не выбран (обводка вокруг юнита)
+/// - подсветка, если юнит является целью атаки
+/// - визуализация радиуса атаки с помощью компонента AttackRangeVisualizer
 /// </summary>
 public class UnitSelectionVisuals : MonoBehaviour
 {
     [Header("Ссылки на визуальные элементы")]
-    [SerializeField] private GameObject selectionCircle;         // Обводка вокруг выбранного юнита
-    [SerializeField] private GameObject attackTargetHighlight;   // Подсветка при наведении как на цель
-    [SerializeField] private AttackRangeVisualizer rangeVisualizer; // Компонент отрисовки радиуса атаки
 
-    private float _attackRange;
+    [SerializeField]
+    private GameObject selectionCircle;           // Обводка, показывающая, что юнит выбран
+
+    [SerializeField]
+    private GameObject attackTargetHighlight;     // Подсветка юнита как цели для атаки
+
+    [SerializeField]
+    private AttackRangeVisualizer rangeVisualizer; // Компонент для отрисовки радиуса атаки
+
+    private float _attackRange;                    // Текущий радиус атаки, который будет визуализироваться
 
     /// <summary>
-    /// Метод Reset вызывается в редакторе, если нажать "Reset" на компоненте.
-    /// Здесь происходит автоматическое присвоение компонента rangeVisualizer.
+    /// Метод Reset вызывается в редакторе Unity при нажатии кнопки Reset компонента.
+    /// Автоматически пытается найти компонент AttackRangeVisualizer, если он не назначен вручную.
     /// </summary>
     private void Reset()
     {
-        // Если не задан вручную — найти среди компонентов объекта
         if (rangeVisualizer == null)
             rangeVisualizer = GetComponent<AttackRangeVisualizer>() ?? GetComponentInChildren<AttackRangeVisualizer>();
     }
 
     /// <summary>
-    /// Инициализация визуализатора — передаём радиус атаки, который потом будет использоваться для отображения круга.
+    /// Инициализация визуализатора: передача радиуса атаки,
+    /// который затем используется для отрисовки круга.
     /// </summary>
+    /// <param name="attackRange">Радиус атаки юнита</param>
     public void Initialize(float attackRange)
     {
-        this._attackRange = attackRange;
+        _attackRange = attackRange;
     }
 
     /// <summary>
-    /// Отображает/скрывает круг выбора и радиус атаки в зависимости от состояния.
+    /// Управляет отображением обводки выбора и визуализацией радиуса атаки.
+    /// Радиус отображается только если юнит выбран и ещё не атаковал.
     /// </summary>
-    /// <param name="selected">Выбран ли юнит</param>
-    /// <param name="hasAttacked">Совершил ли он атаку (если да — радиус не показываем)</param>
+    /// <param name="selected">Является ли юнит выбранным</param>
+    /// <param name="hasAttacked">Совершил ли юнит атаку (если да, радиус не показываем)</param>
     public void ShowSelection(bool selected, bool hasAttacked)
     {
-        // Включаем обводку, если юнит выбран
+        // Показываем или скрываем обводку выбора
         selectionCircle?.SetActive(selected);
 
-        // Показываем радиус атаки, только если юнит выбран и ещё может атаковать
+        // Показываем радиус атаки только если выбран и ещё может атаковать
         bool showRange = selected && !hasAttacked;
 
         if (rangeVisualizer != null)
@@ -59,9 +67,10 @@ public class UnitSelectionVisuals : MonoBehaviour
     }
 
     /// <summary>
-    /// Подсветка, когда на юнита наводятся как на цель атаки.
+    /// Управляет подсветкой юнита как цели атаки.
+    /// Включается, когда юнит выбран как цель или наведён курсор.
     /// </summary>
-    /// <param name="selected">Наведён ли курсор/выделен ли как цель</param>
+    /// <param name="selected">Включить ли подсветку</param>
     public void ShowAttackTargetHighlight(bool selected)
     {
         attackTargetHighlight?.SetActive(selected);

@@ -8,14 +8,14 @@ using UnityEngine;
 public class AttackRangeVisualizer : MonoBehaviour
 {
     [Header("Настройки круга")]
-    [SerializeField] private int segments = 40; // Количество сегментов круга (чем больше, тем круглее)
+    [SerializeField] private int segments = 40; // Количество сегментов круга (чем больше — тем круглее)
     [SerializeField] private float range = 5f;  // Радиус круга (дальность атаки)
 
     private LineRenderer _lineRenderer;
 
     /// <summary>
     /// В методе Awake кэшируем компонент LineRenderer и настраиваем его.
-    /// Используем локальные координаты (useWorldSpace = false), чтобы круг масштабировался с объектом.
+    /// Используем локальные координаты (useWorldSpace = false), чтобы круг масштабировался вместе с объектом.
     /// </summary>
     private void Awake()
     {
@@ -39,20 +39,22 @@ public class AttackRangeVisualizer : MonoBehaviour
     {
         if (_lineRenderer == null) return;
 
-        _lineRenderer.positionCount = segments + 1; // +1, чтобы замкнуть круг
+        _lineRenderer.positionCount = segments + 1; // +1 для замыкания круга
         float angleStep = 360f / segments;
 
         for (int i = 0; i <= segments; i++)
         {
-            float angle = i * angleStep * Mathf.Deg2Rad; // перевод в радианы
+            float angle = i * angleStep * Mathf.Deg2Rad; // конвертация градусов в радианы
             float x = Mathf.Sin(angle) * range;
             float z = Mathf.Cos(angle) * range;
-            _lineRenderer.SetPosition(i, new Vector3(x, 0.01f, z)); // немного приподнят, чтобы не перекрывало пол
+
+            // Устанавливаем позицию точки круга (Y = 0.01 для небольшого смещения над поверхностью)
+            _lineRenderer.SetPosition(i, new Vector3(x, 0.01f, z));
         }
     }
 
     /// <summary>
-    /// Включает или выключает отображение круга.
+    /// Включает или выключает отображение круга радиуса атаки.
     /// </summary>
     public void Show(bool show)
     {

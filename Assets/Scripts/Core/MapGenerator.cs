@@ -26,17 +26,18 @@ public class MapGenerator : NetworkBehaviour
     /// </summary>
     public override void OnNetworkSpawn()
     {
-        if (!IsServer) return; // Только сервер отвечает за генерацию карты
+        if (!IsServer) return; // Генерация должна происходить только на сервере, иначе клиенты будут дублировать объекты
 
-        GenerateMap();
+        GenerateMap(); // Запускаем генерацию карты
     }
 
     /// <summary>
     /// Основной метод генерации карты с препятствиями.
+    /// Создаёт случайное количество препятствий в случайных незанятых клетках.
     /// </summary>
     private void GenerateMap()
     {
-        // Случайное количество препятствий
+        // Случайное количество препятствий в диапазоне от minObstacles до maxObstacles включительно
         int obstacleCount = Random.Range(minObstacles, maxObstacles + 1);
 
         for (int i = 0; i < obstacleCount; i++)
@@ -47,19 +48,22 @@ public class MapGenerator : NetworkBehaviour
             do
             {
                 cell = new Vector2Int(Random.Range(0, width), Random.Range(0, height));
+                // Выбираем случайную позицию на сетке
             } while (!_occupiedCells.Add(cell));
-            // HashSet.Add вернёт false, если такая клетка уже занята
+            // HashSet.Add вернёт false, если такая клетка уже занята,
+            // что заставит цикл искать новую позицию
 
-            // Центрируем объект в клетке (0.5 по X и Z), высота Y — 0.5 (подходит для куба размером 1)
+            // Центрируем объект в клетке (по X и Z смещение 0.5, чтобы объект оказался в центре клетки)
+            // Y = 0.5, предполагается, что препятствия — кубы размером 1 по высоте
             Vector3 position = new Vector3(cell.x + 0.5f, 0.5f, cell.y + 0.5f);
 
-            // Создаём объект препятствия
+            // Создаём объект препятствия в сцене
             GameObject obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);
 
-            // Убедимся, что объект сетевой (обязательно для Netcode)
+            // Проверяем, что префаб содержит компонент NetworkObject — обязательный для работы Netcode
             if (obstacle.TryGetComponent(out NetworkObject netObj))
             {
-                netObj.Spawn(); // Спавн в сетевом пространстве
+                netObj.Spawn(); // Спавним объект в сетевой сессии (видим для всех клиентов)
             }
             else
             {
@@ -73,7 +77,8 @@ public class MapGenerator : NetworkBehaviour
 #if UNITY_EDITOR
     /// <summary>
     /// Визуализация сетки карты в редакторе Unity.
-    /// Удобно для отладки при разработке.
+    /// Отрисовывает каркас клеток на плоскости для удобства редактирования и отладки.
+    /// Выполняется только в редакторе (не в билде).
     /// </summary>
     private void OnDrawGizmos()
     {

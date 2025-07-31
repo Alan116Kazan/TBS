@@ -20,7 +20,7 @@ public class PlayerUnitSelectionData
 
     /// <summary>
     /// √отов ли игрок к началу игры.
-    /// ”словие готовности Ч выбор хот€ бы одного юнита.
+    /// ”словие готовности Ч выбран хот€ бы один юнит.
     /// </summary>
     public bool IsReady => SlowUnitCount + FastUnitCount > 0;
 }
