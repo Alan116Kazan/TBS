@@ -1,15 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
 using Unity.Netcode;
+using System;
 
-/// <summary>
-/// Управляет UI элементами, связанными с ходом игрока.
-/// Отображает, чей сейчас ход, и позволяет закончить ход.
-/// </summary>
 public class TurnUIController : MonoBehaviour
 {
     [SerializeField] private Button endTurnButton;
     [SerializeField] private Text turnText;
+    [SerializeField] private Text timerText;
+    [SerializeField] private Text roundText; // Новое поле — привяжи в инспекторе
 
     private ulong _myId;
 
@@ -18,30 +17,52 @@ public class TurnUIController : MonoBehaviour
         _myId = NetworkManager.Singleton.LocalClientId;
         endTurnButton.onClick.AddListener(OnEndTurnClicked);
 
-        // Попытка сразу обновить UI по текущему игроку
         if (TurnManager.Instance != null)
         {
             HandleTurnStarted(TurnManager.Instance.CurrentPlayerId);
+            UpdateRoundUI();
         }
     }
 
     private void OnEnable()
     {
         GameEvents.OnTurnStarted += HandleTurnStarted;
+        GameEvents.OnTurnTimerUpdated += HandleTimerUpdated;
+        GameEvents.OnRoundChanged += HandleRoundChanged; // Подписка на обновление раунда
     }
 
     private void OnDisable()
     {
         GameEvents.OnTurnStarted -= HandleTurnStarted;
+        GameEvents.OnTurnTimerUpdated -= HandleTimerUpdated;
+        GameEvents.OnRoundChanged -= HandleRoundChanged;
     }
 
     private void HandleTurnStarted(ulong activePlayerId)
     {
-        Debug.Log($"TurnUIController: ход игрока {activePlayerId}, мой ID {_myId}");
-
         bool isMyTurn = activePlayerId == _myId;
         turnText.text = isMyTurn ? "Ваш ход" : "Ожидайте хода соперника...";
         endTurnButton.interactable = isMyTurn;
+
+        timerText.text = "";
+        UpdateRoundUI();
+    }
+
+    private void HandleTimerUpdated(float timeLeft)
+    {
+        TimeSpan time = TimeSpan.FromSeconds(Mathf.Ceil(timeLeft));
+        timerText.text = $"Осталось: {time.Minutes:00}:{time.Seconds:00}";
+    }
+
+    private void HandleRoundChanged(int round)
+    {
+        roundText.text = $"Раунд: {round}";
+    }
+
+    private void UpdateRoundUI()
+    {
+        if (TurnManager.Instance != null)
+            roundText.text = $"Раунд: {TurnManager.Instance.CurrentRound}";
     }
 
     private void OnEndTurnClicked()
@@ -49,4 +70,3 @@ public class TurnUIController : MonoBehaviour
         TurnManager.Instance?.EndTurnServerRpc();
     }
 }
-
