@@ -9,68 +9,56 @@ public class UnitAttackController : NetworkBehaviour, IAttackable
 {
     private UnitController _unitController;
 
-    // Сетевая переменная, указывающая, совершал ли юнит атаку в текущем ходе
-    // Все могут читать, только сервер может писать
     private readonly NetworkVariable<bool> hasAttacked = new(
         false,
         NetworkVariableReadPermission.Everyone,
         NetworkVariableWritePermission.Server);
 
-    // Свойство для проверки, был ли совершен удар
     public bool HasAttacked => hasAttacked.Value;
 
-    /// <summary>
-    /// Инициализация контроллера с привязкой к UnitController.
-    /// </summary>
     public void Initialize(UnitController controller)
     {
         _unitController = controller;
 
         if (IsServer)
-            hasAttacked.Value = false; // Сбрасываем состояние атаки при инициализации на сервере
+            hasAttacked.Value = false;
+
+        // Подписка на клиенте
+        hasAttacked.OnValueChanged += (prev, next) =>
+        {
+            if (IsClient)
+                GameEvents.TriggerUnitAttacked(_unitController);
+        };
     }
 
-    /// <summary>
-    /// Проверяет, находится ли цель в радиусе атаки юнита.
-    /// </summary>
+
     public bool IsTargetInRange(Vector3 targetPosition)
     {
         return Vector3.Distance(_unitController.transform.position, targetPosition) <= _unitController.AttackRange;
     }
 
-    /// <summary>
-    /// Пытается выполнить атаку по позиции цели.
-    /// Вызывает серверный RPC для обработки логики.
-    /// </summary>
     public void TryAttack(Vector3 targetPosition)
     {
         TryAttackServerRpc(targetPosition);
     }
 
-    /// <summary>
-    /// Серверный RPC, выполняющий атаку.
-    /// Проверяет, что ход принадлежит владельцу юнита и атака ещё не была совершена.
-    /// </summary>
     [ServerRpc(RequireOwnership = false)]
     private void TryAttackServerRpc(Vector3 targetPosition, ServerRpcParams rpcParams = default)
     {
         if (!TurnManager.Instance.IsPlayerTurn(_unitController.OwnerId) || HasAttacked)
-            return; // Если не ход игрока или атака уже была — ничего не делаем
+            return;
 
         if (!IsTargetInRange(targetPosition))
-            return; // Если цель вне досягаемости — ничего не делаем
+            return;
 
         Debug.Log($"Unit {_unitController.name} attacks target at {targetPosition}");
 
         hasAttacked.Value = true;
+        GameEvents.TriggerUnitAttacked(_unitController);
 
-        // TODO: здесь можно добавить анимацию атаки, вычисление урона и т.п.
+        // TODO: здесь можно добавить урон, анимацию и эффекты
     }
 
-    /// <summary>
-    /// Сбрасывает состояние атаки (например, при начале нового хода).
-    /// Вызывает серверный RPC.
-    /// </summary>
     public void ResetAttack()
     {
         ResetAttackServerRpc();
@@ -80,5 +68,6 @@ public class UnitAttackController : NetworkBehaviour, IAttackable
     private void ResetAttackServerRpc()
     {
         hasAttacked.Value = false;
+        GameEvents.TriggerUnitAttacked(_unitController);
     }
 }

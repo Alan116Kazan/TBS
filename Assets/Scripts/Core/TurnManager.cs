@@ -10,7 +10,7 @@ public class TurnManager : NetworkBehaviour
     [SerializeField] private float turnDuration = 60f;
 
     [Header("Настройки игры")]
-    [SerializeField] private int infiniteMovementStartRound = 10; // Раунд, с которого начинается бесконечное движение
+    [SerializeField] private int infiniteMovementStartRound = 10;
 
     private readonly List<UnitController> registeredUnits = new();
 
@@ -19,11 +19,10 @@ public class TurnManager : NetworkBehaviour
     private NetworkVariable<int> currentRound = new(1, NetworkVariableReadPermission.Everyone, NetworkVariableWritePermission.Server);
 
     private float turnTimer;
+    private bool gameEnded = false;
 
     public ulong CurrentPlayerId => currentClientId.Value;
     public int CurrentRound => currentRound.Value;
-
-    private bool gameEnded = false;
 
     private void Awake()
     {
@@ -41,38 +40,27 @@ public class TurnManager : NetworkBehaviour
     {
         if (IsClient)
         {
-            timeLeft.OnValueChanged += (_, newValue) =>
-            {
-                GameEvents.TriggerTurnTimerUpdated(newValue);
-            };
+            timeLeft.OnValueChanged += (_, newValue) => GameEvents.TriggerTurnTimerUpdated(newValue);
         }
 
-        if (IsServer)
+        if (IsServer && NetworkManager.Singleton.ConnectedClientsList.Count > 0)
         {
-            if (NetworkManager.Singleton.ConnectedClientsList.Count > 0)
-            {
-                currentClientId.Value = NetworkManager.Singleton.ConnectedClientsList[0].ClientId;
-                turnTimer = turnDuration;
-                timeLeft.Value = turnDuration;
-                currentRound.Value = 1;
-                gameEnded = false;
-            }
+            var firstClient = NetworkManager.Singleton.ConnectedClientsList[0].ClientId;
+            currentClientId.Value = firstClient;
+            turnTimer = turnDuration;
+            timeLeft.Value = turnDuration;
+            currentRound.Value = 1;
+            gameEnded = false;
         }
     }
 
     private void Update()
     {
-        if (!IsServer) return;
+        if (!IsServer || gameEnded) return;
 
-        if (gameEnded)
-            return;
-
-        if (CheckForVictory(out ulong winnerClientId))
+        if (CheckForVictory(out ulong winnerId))
         {
-            gameEnded = true;
-            turnTimer = 0f;
-            timeLeft.Value = 0f;
-            TriggerGameEndedClientRpc(winnerClientId);
+            EndGame(winnerId);
             return;
         }
 
@@ -82,55 +70,48 @@ public class TurnManager : NetworkBehaviour
             timeLeft.Value = Mathf.Max(0f, turnTimer);
 
             if (turnTimer <= 0f)
-            {
                 EndTurnServerRpc();
-            }
         }
+    }
+
+    private void EndGame(ulong winnerId)
+    {
+        gameEnded = true;
+        turnTimer = 0f;
+        timeLeft.Value = 0f;
+        TriggerGameEndedClientRpc(winnerId);
     }
 
     private bool CheckForVictory(out ulong winnerClientId)
     {
-        Dictionary<ulong, int> activeUnitsCount = new Dictionary<ulong, int>();
+        CleanNullUnits();
+
+        Dictionary<ulong, int> unitCounts = new();
 
         foreach (var unit in registeredUnits)
         {
-            if (unit.gameObject.activeSelf)
+            if (unit != null && unit.gameObject != null && unit.gameObject.activeSelf)
             {
-                if (!activeUnitsCount.ContainsKey(unit.OwnerId))
-                    activeUnitsCount[unit.OwnerId] = 0;
-                activeUnitsCount[unit.OwnerId]++;
+                if (!unitCounts.ContainsKey(unit.OwnerId))
+                    unitCounts[unit.OwnerId] = 0;
+                unitCounts[unit.OwnerId]++;
             }
-        }
-
-        var players = NetworkManager.Singleton.ConnectedClientsList;
-        if (players.Count < 2)
-        {
-            winnerClientId = 0;
-            return false;
         }
 
         int playersWithUnits = 0;
-        ulong lastPlayerWithUnits = 0;
+        ulong lastPlayerId = 0;
 
-        foreach (var player in players)
+        foreach (var client in NetworkManager.Singleton.ConnectedClientsList)
         {
-            ulong clientId = player.ClientId;
-            int count = activeUnitsCount.ContainsKey(clientId) ? activeUnitsCount[clientId] : 0;
-            if (count > 0)
+            if (unitCounts.TryGetValue(client.ClientId, out int count) && count > 0)
             {
                 playersWithUnits++;
-                lastPlayerWithUnits = clientId;
+                lastPlayerId = client.ClientId;
             }
         }
 
-        if (playersWithUnits == 1)
-        {
-            winnerClientId = lastPlayerWithUnits;
-            return true;
-        }
-
-        winnerClientId = 0;
-        return false;
+        winnerClientId = playersWithUnits == 1 ? lastPlayerId : 0;
+        return playersWithUnits == 1;
     }
 
     private void OnTurnChanged(ulong oldValue, ulong newValue)
@@ -142,7 +123,7 @@ public class TurnManager : NetworkBehaviour
 
             foreach (var unit in registeredUnits)
             {
-                if (unit.OwnerId == newValue)
+                if (unit != null && unit.OwnerId == newValue)
                     unit.ResetTurn();
             }
         }
@@ -167,7 +148,7 @@ public class TurnManager : NetworkBehaviour
 
     public void RegisterUnit(UnitController unit)
     {
-        if (!registeredUnits.Contains(unit))
+        if (unit != null && !registeredUnits.Contains(unit))
             registeredUnits.Add(unit);
     }
 
@@ -183,35 +164,26 @@ public class TurnManager : NetworkBehaviour
             currentRound.Value++;
             GameEvents.TriggerRoundChanged(currentRound.Value);
 
-            // Проверка победы по числу юнитов
-            if (currentRound.Value == infiniteMovementStartRound)
+            if (currentRound.Value == infiniteMovementStartRound &&
+                TryDetermineWinnerByUnitCount(out ulong winnerId))
             {
-                if (TryDetermineWinnerByUnitCount(out ulong winnerClientId))
-                {
-                    gameEnded = true;
-                    turnTimer = 0f;
-                    timeLeft.Value = 0f;
-                    TriggerGameEndedClientRpc(winnerClientId);
-                    return;
-                }
+                EndGame(winnerId);
+                return;
             }
 
-            // Включаем бесконечное движение
             if (currentRound.Value >= infiniteMovementStartRound)
-            {
                 SetUnitsInfiniteMovement(true);
-            }
         }
 
         currentClientId.Value = nextClientId;
     }
 
-
     private void SetUnitsInfiniteMovement(bool enabled)
     {
         foreach (var unit in registeredUnits)
         {
-            unit.SetInfiniteMovementRadius(enabled);
+            if (unit != null)
+                unit.SetInfiniteMovementRadius(enabled);
         }
     }
 
@@ -228,36 +200,30 @@ public class TurnManager : NetworkBehaviour
 
     private ulong GetFirstClientId()
     {
-        if (NetworkManager.Singleton.ConnectedClientsList.Count > 0)
-            return NetworkManager.Singleton.ConnectedClientsList[0].ClientId;
-
-        return 0;
+        return NetworkManager.Singleton.ConnectedClientsList.Count > 0
+            ? NetworkManager.Singleton.ConnectedClientsList[0].ClientId
+            : 0;
     }
 
     private bool TryDetermineWinnerByUnitCount(out ulong winnerClientId)
     {
-        Dictionary<ulong, int> activeUnitsCount = new();
+        CleanNullUnits();
+
+        Dictionary<ulong, int> unitCounts = new();
 
         foreach (var unit in registeredUnits)
         {
-            if (unit.gameObject.activeSelf)
+            if (unit != null && unit.gameObject != null && unit.gameObject.activeSelf)
             {
-                if (!activeUnitsCount.ContainsKey(unit.OwnerId))
-                    activeUnitsCount[unit.OwnerId] = 0;
-                activeUnitsCount[unit.OwnerId]++;
+                if (!unitCounts.ContainsKey(unit.OwnerId))
+                    unitCounts[unit.OwnerId] = 0;
+                unitCounts[unit.OwnerId]++;
             }
         }
 
-        var players = NetworkManager.Singleton.ConnectedClientsList;
-        if (players.Count < 2)
+        if (unitCounts.Count == 2)
         {
-            winnerClientId = 0;
-            return false;
-        }
-
-        if (activeUnitsCount.Count == 2)
-        {
-            var enumerator = activeUnitsCount.GetEnumerator();
+            using var enumerator = unitCounts.GetEnumerator();
             enumerator.MoveNext();
             var first = enumerator.Current;
             enumerator.MoveNext();
@@ -279,4 +245,8 @@ public class TurnManager : NetworkBehaviour
         return false;
     }
 
+    private void CleanNullUnits()
+    {
+        registeredUnits.RemoveAll(unit => unit == null || unit.gameObject == null);
+    }
 }

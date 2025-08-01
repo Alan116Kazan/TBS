@@ -3,91 +3,110 @@ using UnityEngine;
 using Unity.Netcode;
 
 /// <summary>
-/// Отвечает за генерацию карты с препятствиями.
-/// Генерация выполняется **только на сервере** при спавне объекта.
+/// Генерирует карту с препятствиями на объекте Plane (используется его позиция и масштаб).
+/// Генерация выполняется только на сервере.
 /// </summary>
 public class MapGenerator : NetworkBehaviour
 {
-    [Header("Размер поля")]
-    [SerializeField] private int width = 10;   // Количество клеток по ширине карты
-    [SerializeField] private int height = 10;  // Количество клеток по высоте карты
+    [Header("Размер сетки")]
+    [SerializeField] private int width = 10;
+    [SerializeField] private int height = 10;
 
     [Header("Препятствия")]
-    [SerializeField] private GameObject obstaclePrefab; // Префаб объекта-препятствия (обязательно с NetworkObject)
-    [SerializeField] private int minObstacles = 5;      // Минимальное количество препятствий
-    [SerializeField] private int maxObstacles = 15;     // Максимальное количество препятствий
+    [SerializeField] private GameObject obstaclePrefab;
+    [SerializeField] private int minObstacles = 5;
+    [SerializeField] private int maxObstacles = 15;
 
-    // Хранит координаты занятых клеток (чтобы не создавать препятствия в одной и той же точке)
+    [Header("Ссылка на Plane")]
+    [SerializeField] private Transform planeTransform;
+
     private readonly HashSet<Vector2Int> _occupiedCells = new();
 
-    /// <summary>
-    /// Метод вызывается автоматически при появлении объекта на сцене в сетевой сессии.
-    /// Генерация карты выполняется только на сервере.
-    /// </summary>
     public override void OnNetworkSpawn()
     {
-        if (!IsServer) return; // Генерация должна происходить только на сервере, иначе клиенты будут дублировать объекты
-
-        GenerateMap(); // Запускаем генерацию карты
+        if (!IsServer) return;
+        GenerateMap();
     }
 
-    /// <summary>
-    /// Основной метод генерации карты с препятствиями.
-    /// Создаёт случайное количество препятствий в случайных незанятых клетках.
-    /// </summary>
     private void GenerateMap()
     {
-        // Случайное количество препятствий в диапазоне от minObstacles до maxObstacles включительно
+        if (planeTransform == null)
+        {
+            Debug.LogError("Plane Transform не установлен!");
+            return;
+        }
+
         int obstacleCount = Random.Range(minObstacles, maxObstacles + 1);
+
+        Vector3 planeOrigin = planeTransform.position;
+        Vector3 planeSize = planeTransform.localScale * 10f;
+
+        float cellWidth = planeSize.x / width;
+        float cellHeight = planeSize.z / height;
 
         for (int i = 0; i < obstacleCount; i++)
         {
             Vector2Int cell;
-
-            // Ищем свободную клетку, в которую ещё не ставили препятствие
             do
             {
                 cell = new Vector2Int(Random.Range(0, width), Random.Range(0, height));
-                // Выбираем случайную позицию на сетке
             } while (!_occupiedCells.Add(cell));
-            // HashSet.Add вернёт false, если такая клетка уже занята,
-            // что заставит цикл искать новую позицию
 
-            // Центрируем объект в клетке (по X и Z смещение 0.5, чтобы объект оказался в центре клетки)
-            // Y = 0.5, предполагается, что препятствия — кубы размером 1 по высоте
-            Vector3 position = new Vector3(cell.x + 0.5f, 0.5f, cell.y + 0.5f);
+            float posX = planeOrigin.x - planeSize.x / 2 + cell.x * cellWidth + cellWidth / 2;
+            float posZ = planeOrigin.z - planeSize.z / 2 + cell.y * cellHeight + cellHeight / 2;
+            Vector3 rayOrigin = new Vector3(posX, planeOrigin.y + 10f, posZ);
 
-            // Создаём объект препятствия в сцене
-            GameObject obstacle = Instantiate(obstaclePrefab, position, Quaternion.identity);
-
-            // Проверяем, что префаб содержит компонент NetworkObject — обязательный для работы Netcode
-            if (obstacle.TryGetComponent(out NetworkObject netObj))
+            if (Physics.Raycast(rayOrigin, Vector3.down, out RaycastHit hit, 20f))
             {
-                netObj.Spawn(); // Спавним объект в сетевой сессии (видим для всех клиентов)
+                Vector3 spawnPoint = hit.point;
+
+                GameObject obstacle = Instantiate(obstaclePrefab, Vector3.zero, Quaternion.identity);
+
+                if (obstacle.TryGetComponent(out Renderer renderer))
+                {
+                    float height = renderer.bounds.size.y;
+                    spawnPoint.y += height / 2f;
+                }
+
+                obstacle.transform.position = spawnPoint;
+
+                if (obstacle.TryGetComponent(out NetworkObject netObj))
+                    netObj.Spawn();
+                else
+                    Debug.LogWarning("Obstacle prefab missing NetworkObject component!");
             }
             else
             {
-                Debug.LogWarning("Obstacle prefab missing NetworkObject component!");
+                Debug.LogWarning($"Raycast не попал в Plane на позиции {rayOrigin}");
             }
         }
 
         Debug.Log($"[Server] Map generated with {obstacleCount} obstacles.");
     }
 
+
 #if UNITY_EDITOR
-    /// <summary>
-    /// Визуализация сетки карты в редакторе Unity.
-    /// Отрисовывает каркас клеток на плоскости для удобства редактирования и отладки.
-    /// Выполняется только в редакторе (не в билде).
-    /// </summary>
     private void OnDrawGizmos()
     {
+        if (planeTransform == null) return;
+
         Gizmos.color = Color.gray;
-        Vector3 size = new(1f, 0.01f, 1f); // Плоские клетки (почти без высоты)
+        Vector3 planeOrigin = planeTransform.position;
+        Vector3 planeSize = planeTransform.localScale * 10f;
+
+        float cellWidth = planeSize.x / width;
+        float cellHeight = planeSize.z / height;
 
         for (int x = 0; x < width; x++)
+        {
             for (int y = 0; y < height; y++)
-                Gizmos.DrawWireCube(new Vector3(x + 0.5f, 0f, y + 0.5f), size);
+            {
+                float posX = planeOrigin.x - planeSize.x / 2 + x * cellWidth + cellWidth / 2;
+                float posZ = planeOrigin.z - planeSize.z / 2 + y * cellHeight + cellHeight / 2;
+                Vector3 center = new Vector3(posX, planeOrigin.y + 0.01f, posZ);
+                Gizmos.DrawWireCube(center, new Vector3(cellWidth, 0.01f, cellHeight));
+            }
+        }
     }
 #endif
 }

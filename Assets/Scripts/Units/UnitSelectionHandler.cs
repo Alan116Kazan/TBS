@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class UnitSelectionHandler : MonoBehaviour
 {
+    [SerializeField] private UnitStatusUI unitStatusUI;
+
     [SerializeField] private LineRenderer greenLineRenderer;
     [SerializeField] private LineRenderer redLineRenderer;
 
@@ -63,6 +65,7 @@ public class UnitSelectionHandler : MonoBehaviour
             if (unit.HasAttacked && unit.RemainingMoveDistance <= 0f) return;
 
             _selector.Select(unit);
+            unitStatusUI.SetUnit(unit); // <-- обновляем UI
         }
         else
         {
@@ -70,6 +73,7 @@ public class UnitSelectionHandler : MonoBehaviour
             _attackHandler.ClearTarget();
             _predictor.Clear();
             _prediction = null;
+            unitStatusUI.Clear(); // <-- очищаем UI
         }
     }
 

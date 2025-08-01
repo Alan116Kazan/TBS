@@ -32,7 +32,15 @@ public class UnitMovementController : NetworkBehaviour, IMovable
 
         if (IsServer)
             remainingMoveDistance.Value = defaultMaxMoveDistance;
+
+        // Подписка на изменение
+        remainingMoveDistance.OnValueChanged += (prev, next) =>
+        {
+            if (IsClient)
+                GameEvents.TriggerUnitMoved(_unitController);
+        };
     }
+
 
     public void SetInfiniteMovementRadius(bool enabled)
     {
@@ -44,6 +52,8 @@ public class UnitMovementController : NetworkBehaviour, IMovable
             remainingMoveDistance.Value = float.MaxValue;
         else
             remainingMoveDistance.Value = defaultMaxMoveDistance;
+
+        GameEvents.TriggerUnitMoved(_unitController);
     }
 
     public void TryMove(Vector3 targetPosition)
@@ -84,6 +94,7 @@ public class UnitMovementController : NetworkBehaviour, IMovable
 
         _agent.SetDestination(finalPosition);
         remainingMoveDistance.Value = Mathf.Max(0f, RemainingMoveDistance - totalDistance);
+        GameEvents.TriggerUnitMoved(_unitController);
     }
 
     public void ResetMovement()
@@ -98,5 +109,7 @@ public class UnitMovementController : NetworkBehaviour, IMovable
             remainingMoveDistance.Value = float.MaxValue;
         else
             remainingMoveDistance.Value = defaultMaxMoveDistance;
+
+        GameEvents.TriggerUnitMoved(_unitController);
     }
 }
