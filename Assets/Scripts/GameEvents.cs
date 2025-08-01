@@ -9,6 +9,9 @@ public static class GameEvents
 
     public static event Action<int> OnRoundChanged;
 
+    // Новое событие для окончания игры
+    public static event Action<ulong> OnGameEnded;
+
     public static void TriggerTurnStarted(ulong playerId)
     {
         OnTurnStarted?.Invoke(playerId);
@@ -27,5 +30,11 @@ public static class GameEvents
     public static void TriggerRoundChanged(int round)
     {
         OnRoundChanged?.Invoke(round);
+    }
+
+    // Новый метод-триггер для окончания игры
+    public static void TriggerGameEnded(ulong winnerPlayerId)
+    {
+        OnGameEnded?.Invoke(winnerPlayerId);
     }
 }

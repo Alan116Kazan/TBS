@@ -65,9 +65,6 @@ public class UnitController : NetworkBehaviour
 
     public void TryAttack(Vector3 targetPosition) => _attack?.TryAttack(targetPosition);
 
-    /// <summary>
-    /// Сбрасывает состояние юнита в начале хода.
-    /// </summary>
     public void ResetTurn()
     {
         _attack?.ResetAttack();
@@ -79,6 +76,12 @@ public class UnitController : NetworkBehaviour
     public bool IsTargetInRange(Vector3 targetPosition)
     {
         return _attack?.IsTargetInRange(targetPosition) ?? false;
+    }
+
+    public void SetInfiniteMovementRadius(bool enabled)
+    {
+        if (_movement is UnitMovementController mov)
+            mov.SetInfiniteMovementRadius(enabled);
     }
 
     [ClientRpc]
@@ -93,8 +96,8 @@ public class UnitController : NetworkBehaviour
 
         Debug.Log($"Unit {name} умирает и отключается на сервере");
 
-        DisableOnClientRpc(); // Отключаем на всех клиентах
-        gameObject.SetActive(false); // И на хосте тоже
+        DisableOnClientRpc();
+        gameObject.SetActive(false);
     }
 
     [ServerRpc(RequireOwnership = false)]
@@ -102,6 +105,4 @@ public class UnitController : NetworkBehaviour
     {
         Die();
     }
-
-
 }
