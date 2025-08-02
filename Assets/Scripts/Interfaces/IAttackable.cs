@@ -1,32 +1,31 @@
-// IAttackable.cs
 using UnityEngine;
 
 /// <summary>
-/// Интерфейс, описывающий поведение атакующего объекта.
-/// Позволяет проверить возможность атаки, выполнить её и сбросить состояние атаки.
+/// Интерфейс, описывающий атакующие действия юнита:
+/// проверку возможности атаки, выполнение атаки и её сброс.
 /// </summary>
 public interface IAttackable
 {
     /// <summary>
-    /// Свойство, указывающее, совершал ли объект атаку в текущем ходе.
+    /// Был ли юнит атакующим в текущем ходе.
     /// </summary>
     bool HasAttacked { get; }
 
     /// <summary>
-    /// Проверяет, находится ли цель в пределах досягаемости атаки.
+    /// Проверяет, находится ли цель в пределах радиуса атаки.
     /// </summary>
-    /// <param name="targetPosition">Позиция потенциальной цели для атаки.</param>
-    /// <returns>True, если цель в радиусе атаки; иначе false.</returns>
+    /// <param name="targetPosition">Позиция цели.</param>
+    /// <returns>True — цель в радиусе; иначе — false.</returns>
     bool IsTargetInRange(Vector3 targetPosition);
 
     /// <summary>
-    /// Пытается выполнить атаку по цели с указанной позицией.
+    /// Выполняет попытку атаки по цели.
     /// </summary>
-    /// <param name="targetPosition">Позиция цели для атаки.</param>
+    /// <param name="targetPosition">Позиция цели.</param>
     void TryAttack(Vector3 targetPosition);
 
     /// <summary>
-    /// Сбрасывает состояние атаки (например, после завершения хода).
+    /// Сброс флага атаки, вызывается при завершении хода.
     /// </summary>
     void ResetAttack();
 }

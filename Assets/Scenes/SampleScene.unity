@@ -132,33 +132,18 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 35604566}
-  - component: {fileID: 35604565}
   - component: {fileID: 35604567}
+  - component: {fileID: 35604571}
+  - component: {fileID: 35604570}
+  - component: {fileID: 35604569}
+  - component: {fileID: 35604568}
   m_Layer: 0
-  m_Name: TurnUIController
+  m_Name: UI
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &35604565
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 35604564}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9a4e4d34f6bf74e4098f6f19e11eecd9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  endTurnButton: {fileID: 809005685}
-  turnText: {fileID: 941367776}
-  timerText: {fileID: 2124275760}
-  roundText: {fileID: 1500201354}
-  gameOverPanel: {fileID: 1282504710}
-  gameOverMessageText: {fileID: 42326029}
 --- !u!4 &35604566
 Transform:
   m_ObjectHideFlags: 0
@@ -188,6 +173,60 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveDistanceText: {fileID: 1306618302}
   canAttackText: {fileID: 1625591988}
+--- !u!114 &35604568
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 35604564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 985a43a2ebca03d4a8f17b2d8b255c7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gameOverPanel: {fileID: 1282504710}
+  gameOverMessageText: {fileID: 42326029}
+--- !u!114 &35604569
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 35604564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49a1f48ed06c20c4b9d991d24b1b45d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  timerText: {fileID: 2124275760}
+--- !u!114 &35604570
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 35604564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f705d30179f00464f873b496dbce8ef9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  roundText: {fileID: 1500201354}
+--- !u!114 &35604571
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 35604564}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ab3ad35351a7c147a903e862a34775a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  turnText: {fileID: 941367776}
+  endTurnButton: {fileID: 809005685}
 --- !u!1 &42326027
 GameObject:
   m_ObjectHideFlags: 0
@@ -296,7 +335,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3af671dde6243d94a83cf0afa409989c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  unitStatusUI: {fileID: 1924581452}
+  unitStatusUI: {fileID: 35604567}
   greenLineRenderer: {fileID: 327695263}
   redLineRenderer: {fileID: 1331048622}
 --- !u!4 &149859511
@@ -452,7 +491,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 1
+        value: 0.20000076
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -1946,11 +1985,11 @@ MonoBehaviour:
   m_GameObject: {fileID: 1312553368}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ac0a5bd1682027e4691ae0da1ccdaa2d, type: 3}
+  m_Script: {fileID: 11500000, guid: dc9cd24d569c06e43a8b85a87c3e6f45, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   turnDuration: 60
-  infiniteMovementStartRound: 4
+  infiniteMovementStartRound: 15
 --- !u!4 &1312553371
 Transform:
   m_ObjectHideFlags: 0
@@ -2036,7 +2075,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 1
+        value: 0.1999994
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -2150,14 +2189,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 1408517721}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1f64f7354e89e764191bb4c05954deb3, type: 3}
+  m_Script: {fileID: 11500000, guid: 53e526226a8b478418ade057031846ae, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   width: 10
   height: 10
   obstaclePrefab: {fileID: 3557379950300512860, guid: c8f044fe75d400847a464fb30cd0eb26,
     type: 3}
-  minObstacles: 10
+  minObstacles: 5
   maxObstacles: 15
   planeTransform: {fileID: 1279047248}
 --- !u!4 &1408517724
@@ -2589,52 +2628,6 @@ Transform:
   - {fileID: 327695264}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1924581451
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1924581453}
-  - component: {fileID: 1924581452}
-  m_Layer: 0
-  m_Name: UnitStatusUI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1924581452
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1924581451}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: bad654f0c9adfb448b3db8a0f5126525, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  moveDistanceText: {fileID: 1306618302}
-  canAttackText: {fileID: 1625591988}
---- !u!4 &1924581453
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1924581451}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 1045.8907, y: 743.4277, z: -5.2890115}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &2124275758
 GameObject:
   m_ObjectHideFlags: 0
@@ -2722,16 +2715,15 @@ SceneRoots:
   - {fileID: 410087041}
   - {fileID: 832575519}
   - {fileID: 1277388432}
-  - {fileID: 1257754267}
-  - {fileID: 294505910}
   - {fileID: 1408517724}
   - {fileID: 899533627}
   - {fileID: 1524991084}
-  - {fileID: 1558253810}
+  - {fileID: 1825719958}
   - {fileID: 1701641461}
-  - {fileID: 496285529}
+  - {fileID: 1558253810}
   - {fileID: 149859511}
   - {fileID: 1312553371}
   - {fileID: 35604566}
-  - {fileID: 1924581453}
-  - {fileID: 1825719958}
+  - {fileID: 496285529}
+  - {fileID: 1257754267}
+  - {fileID: 294505910}

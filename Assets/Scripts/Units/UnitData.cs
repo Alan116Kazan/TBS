@@ -1,27 +1,34 @@
 using UnityEngine;
 
 /// <summary>
-/// Хранит данные юнита, ссылаясь на ScriptableObject с его характеристиками.
-/// Обеспечивает удобный доступ к параметрам юнита.
+/// Компонент, предоставляющий доступ к характеристикам юнита,
+/// хранящимся в ScriptableObject UnitStats.
 /// </summary>
 public class UnitData : MonoBehaviour
 {
-    // Ссылка на ScriptableObject с основными характеристиками юнита
+    [Tooltip("Основные характеристики юнита, заданные через ScriptableObject.")]
     [SerializeField]
     private UnitStats stats;
 
-    /// <summary>
-    /// Публичное свойство для доступа к ScriptableObject со статистикой юнита.
-    /// </summary>
     public UnitStats Stats => stats;
 
     /// <summary>
-    /// Максимальная дистанция передвижения юнита (берётся из stats).
+    /// Максимальная дистанция передвижения юнита.
+    /// Получается из объекта UnitStats.
     /// </summary>
-    public float MaxMoveDistance => stats.maxMoveDistance;
+    public float MaxMoveDistance => stats != null ? stats.maxMoveDistance : 0f;
 
     /// <summary>
-    /// Радиус атаки юнита (берётся из stats).
+    /// Радиус атаки юнита.
+    /// Получается из объекта UnitStats.
     /// </summary>
-    public float AttackRange => stats.attackRange;
+    public float AttackRange => stats != null ? stats.attackRange : 0f;
+
+    private void Awake()
+    {
+        if (stats == null)
+        {
+            Debug.LogWarning($"[UnitData] На объекте {gameObject.name} не назначен UnitStats!");
+        }
+    }
 }
